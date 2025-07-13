@@ -30,6 +30,10 @@ import org.apache.http.HttpStatus;
 
 /* loaded from: classes.dex */
 class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
+    private int lastTouchX = -1;
+    private int lastTouchY = -1;
+    private int animationButtonIndex = -1;
+    private boolean isDpadTouchActive = false;
     int[] virtualPadId;
     private int[] activeTouchIds;
     private int[] touchButtonIds;
@@ -471,6 +475,47 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                 this.emu_split_mode = 1;
             }
         }
+    }
+
+    private int getClosestDpadButton(int touchX, int touchY) {
+        int[][] buttonData = {
+                {(virtualPadPos[12][0] + virtualPadPos[12][2])/2, (virtualPadPos[12][1] + virtualPadPos[12][3])/2, 50},
+                {(virtualPadPos[13][0] + virtualPadPos[13][2])/2, (virtualPadPos[13][1] + virtualPadPos[13][3])/2, 50},
+                {(virtualPadPos[14][0] + virtualPadPos[14][2])/2, (virtualPadPos[14][1] + virtualPadPos[14][3])/2, 50},
+                {(virtualPadPos[15][0] + virtualPadPos[15][2])/2, (virtualPadPos[15][1] + virtualPadPos[15][3])/2, 50}
+        };
+
+        boolean inDpadZone = false;
+        int dpadLeft = Integer.MAX_VALUE, dpadRight = 0, dpadTop = Integer.MAX_VALUE, dpadBottom = 0;
+
+        for (int i = 12; i <= 15; i++) {
+            dpadLeft = Math.min(dpadLeft, virtualPadPos[i][0]);
+            dpadRight = Math.max(dpadRight, virtualPadPos[i][2]);
+            dpadTop = Math.min(dpadTop, virtualPadPos[i][1]);
+            dpadBottom = Math.max(dpadBottom, virtualPadPos[i][3]);
+        }
+        int padding = (int)((dpadRight - dpadLeft) * 0.2);
+        inDpadZone = (touchX >= dpadLeft - padding) && (touchX <= dpadRight + padding) &&
+                (touchY >= dpadTop - padding) && (touchY <= dpadBottom + padding);
+
+        if (!inDpadZone) {
+            return -1;
+        }
+        int closestButton = 12;
+        float minDistance = Float.MAX_VALUE;
+
+        for (int i = 0; i < 4; i++) {
+            float dx = touchX - buttonData[i][0];
+            float dy = touchY - buttonData[i][1];
+            float distance = dx*dx + dy*dy;
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestButton = 12 + i;
+            }
+        }
+
+        return closestButton;
     }
 
     @Override // com.epsxe.ePSXe.ePSXeView
@@ -1066,6 +1111,15 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         int ext2 = 0;
         int mov = 0;
         int found = 0;
+        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+            this.lastTouchX = xi;
+            this.lastTouchY = yi;
+            this.animationButtonIndex = getClosestDpadButton(xi, yi);
+            this.isDpadTouchActive = (this.animationButtonIndex != -1);
+        } else if (action == MotionEvent.ACTION_UP) {
+            this.isDpadTouchActive = false;
+            this.animationButtonIndex = -1;
+        }
         if (this.emu_pad_mode[this.emu_pad_type_selected] == 4 && this.emu_pad_mode_analog[this.emu_pad_type_selected] == 1) {
             ext = 2;
         }
@@ -1885,16 +1939,34 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                 float ox = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 0] - (sx / 2.0f);
                                                 float oy = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 1] - (sy / 2.0f);
                                                 for (int p = 0; p < 4; p++) {
-                                                    if ((ePSXeViewGL.this.statebuttons & (4096 << p)) == 0) {
-                                                        if (ePSXeViewGL.this.emu_pad_draw_mode[0] != 4) {
+                                                    if (ePSXeViewGL.this.isDpadTouchActive && ePSXeViewGL.this.animationButtonIndex != -1) {
+                                                        int buttonMapping = -1;
+                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0; // вверх
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1; // вправо
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2; // вниз
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3; // влево
+
+                                                        if (buttonMapping == p) {
+                                                            this.batchLanDpad[p].beginBatch(this.mTexLan);
+                                                            this.batchLanDpad[p].drawSprite(((this.offDpadX[p] * sx) + ox) / ePSXeViewGL.this.mWidth, ((this.offDpadY[p] * sy) + oy) / ePSXeViewGL.this.mHeight, ((this.sizeDpadX[p] * sx) / ePSXeViewGL.this.mWidth) * ePSXeViewGL.this.buttonMag, ((this.sizeDpadY[p] * sy) / ePSXeViewGL.this.mHeight) * ePSXeViewGL.this.buttonMag, this.textureRgnLanDpad[p]);
+                                                            this.batchLanDpad[p].endBatch();
+                                                        } else {
                                                             this.batchLanDpad[p].beginBatch(this.mTexLan);
                                                             this.batchLanDpad[p].drawSprite(((this.offDpadX[p] * sx) + ox) / ePSXeViewGL.this.mWidth, ((this.offDpadY[p] * sy) + oy) / ePSXeViewGL.this.mHeight, (this.sizeDpadX[p] * sx) / ePSXeViewGL.this.mWidth, (this.sizeDpadY[p] * sy) / ePSXeViewGL.this.mHeight, this.textureRgnLanDpad[p]);
                                                             this.batchLanDpad[p].endBatch();
                                                         }
                                                     } else {
-                                                        this.batchLanDpad[p].beginBatch(this.mTexLan);
-                                                        this.batchLanDpad[p].drawSprite(((this.offDpadX[p] * sx) + ox) / ePSXeViewGL.this.mWidth, ((this.offDpadY[p] * sy) + oy) / ePSXeViewGL.this.mHeight, ((this.sizeDpadX[p] * sx) / ePSXeViewGL.this.mWidth) * ePSXeViewGL.this.buttonMag, ((this.sizeDpadY[p] * sy) / ePSXeViewGL.this.mHeight) * ePSXeViewGL.this.buttonMag, this.textureRgnLanDpad[p]);
-                                                        this.batchLanDpad[p].endBatch();
+                                                        if ((ePSXeViewGL.this.statebuttons & (4096 << p)) == 0) {
+                                                            if (ePSXeViewGL.this.emu_pad_draw_mode[0] != 4) {
+                                                                this.batchLanDpad[p].beginBatch(this.mTexLan);
+                                                                this.batchLanDpad[p].drawSprite(((this.offDpadX[p] * sx) + ox) / ePSXeViewGL.this.mWidth, ((this.offDpadY[p] * sy) + oy) / ePSXeViewGL.this.mHeight, (this.sizeDpadX[p] * sx) / ePSXeViewGL.this.mWidth, (this.sizeDpadY[p] * sy) / ePSXeViewGL.this.mHeight, this.textureRgnLanDpad[p]);
+                                                                this.batchLanDpad[p].endBatch();
+                                                            }
+                                                        } else {
+                                                            this.batchLanDpad[p].beginBatch(this.mTexLan);
+                                                            this.batchLanDpad[p].drawSprite(((this.offDpadX[p] * sx) + ox) / ePSXeViewGL.this.mWidth, ((this.offDpadY[p] * sy) + oy) / ePSXeViewGL.this.mHeight, ((this.sizeDpadX[p] * sx) / ePSXeViewGL.this.mWidth) * ePSXeViewGL.this.buttonMag, ((this.sizeDpadY[p] * sy) / ePSXeViewGL.this.mHeight) * ePSXeViewGL.this.buttonMag, this.textureRgnLanDpad[p]);
+                                                            this.batchLanDpad[p].endBatch();
+                                                        }
                                                     }
                                                 }
                                             } else {
@@ -2950,8 +3022,25 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                 float ox = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 0] - (sx / 2.0f);
                                                 float oy = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 1] - (sy / 2.0f);
                                                 for (int p = 0; p < 4; p++) {
-                                                    if ((ePSXeViewGL.this.statebuttons & (4096 << p)) == 0) {
-                                                        if (ePSXeViewGL.this.emu_pad_draw_mode[0] != 4) {
+                                                    // Проверяем, является ли эта кнопка выбранной для анимации
+                                                    if (ePSXeViewGL.this.isDpadTouchActive && ePSXeViewGL.this.animationButtonIndex != -1) {
+                                                        // Маппинг кнопок D-Pad: 0=вверх, 1=вправо, 2=вниз, 3=влево
+                                                        // Индексы кнопок в системе: 12=вверх, 13=вправо, 14=вниз, 15=влево
+                                                        int buttonMapping = -1;
+                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0; // вверх
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1; // вправо
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2; // вниз
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3; // влево
+                                                        
+                                                        // Анимируем только выбранную кнопку
+                                                        if (buttonMapping == p) {
+                                                            this.batchLanDpad[p].beginBatch();
+                                                            this.batchLanDpad[p].drawSprite(
+                                                                    (this.offDpadX[p] * sx) + ox, (this.offDpadY[p] * sy) + oy,
+                                                                    this.sizeDpadX[p] * sx * ePSXeViewGL.this.buttonMag, this.sizeDpadY[p] * sy * ePSXeViewGL.this.buttonMag,
+                                                                    this.textureRgnLanDpad[p]);
+                                                            this.batchLanDpad[p].endBatch();
+                                                        } else {
                                                             this.batchLanDpad[p].beginBatch();
                                                             this.batchLanDpad[p].drawSprite(
                                                                     (this.offDpadX[p] * sx) + ox, (this.offDpadY[p] * sy) + oy,
@@ -2960,12 +3049,24 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                             this.batchLanDpad[p].endBatch();
                                                         }
                                                     } else {
-                                                        this.batchLanDpad[p].beginBatch();
-                                                        this.batchLanDpad[p].drawSprite(
-                                                                (this.offDpadX[p] * sx) + ox, (this.offDpadY[p] * sy) + oy,
-                                                                this.sizeDpadX[p] * sx * ePSXeViewGL.this.buttonMag, this.sizeDpadY[p] * sy * ePSXeViewGL.this.buttonMag,
-                                                                this.textureRgnLanDpad[p]);
-                                                        this.batchLanDpad[p].endBatch();
+                                                        // Стандартная логика без анимации
+                                                        if ((ePSXeViewGL.this.statebuttons & (4096 << p)) == 0) {
+                                                            if (ePSXeViewGL.this.emu_pad_draw_mode[0] != 4) {
+                                                                this.batchLanDpad[p].beginBatch();
+                                                                this.batchLanDpad[p].drawSprite(
+                                                                        (this.offDpadX[p] * sx) + ox, (this.offDpadY[p] * sy) + oy,
+                                                                        this.sizeDpadX[p] * sx, this.sizeDpadY[p] * sy,
+                                                                        this.textureRgnLanDpad[p]);
+                                                                this.batchLanDpad[p].endBatch();
+                                                            }
+                                                        } else {
+                                                            this.batchLanDpad[p].beginBatch();
+                                                            this.batchLanDpad[p].drawSprite(
+                                                                    (this.offDpadX[p] * sx) + ox, (this.offDpadY[p] * sy) + oy,
+                                                                    this.sizeDpadX[p] * sx * ePSXeViewGL.this.buttonMag, this.sizeDpadY[p] * sy * ePSXeViewGL.this.buttonMag,
+                                                                    this.textureRgnLanDpad[p]);
+                                                            this.batchLanDpad[p].endBatch();
+                                                        }
                                                     }
                                                 }
                                             } else {
