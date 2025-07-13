@@ -491,4 +491,5 @@
 
     <string name="splash_loading">Загрузка...</string>
     <string name="splash_permissions_warning">Без доступа к файлам приложение не сможет работать. Включите это разрешение для приложения</string>
+    <string name="menu_resume_game">Вернуться в игру</string>
 </resources>

@@ -576,4 +576,5 @@
     <string name="splash_loading">Loading...</string>
     <string name="splash_permissions_warning">Grant access to storage to be able to use this app</string>
     <string name="storage_persmission_non_granted">Разрешение на чтение хранилища отклонено</string>
+    <string name="menu_resume_game">Resume to the game</string>
 </resources>

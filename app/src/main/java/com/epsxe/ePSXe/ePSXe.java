@@ -132,6 +132,8 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
     private static final int PREFERENCES_ID = 6;
     private static final int PREFINFO_ID = 22;
     private static final int QUIT_ID = 8;
+
+    private static final int RESUME_GAME_ID = 24;
     public static final int RENDERER_GL2 = 3;
     public static final int RENDERER_GLEXT = 2;
     public static final int RENDERER_GLEXT2 = 4;
@@ -4392,9 +4394,11 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
 //                alertdialog_menu2(mContext);
 //                break;
             case 0:
-                showSstateDialog(this, this.f153e, 0, this.sdCardPath, this.hlebiosrunning);
                 break;
             case 1:
+                showSstateDialog(this, this.f153e, 0, this.sdCardPath, this.hlebiosrunning);
+                break;
+            case 2:
                 showSstateDialog(this, this.f153e, 1, this.sdCardPath, this.hlebiosrunning);
                 break;
 //            case 3:
@@ -4403,7 +4407,7 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
 //            case 4:
 //                this.mePSXeView.toggleframelimit();
 //                break;
-            case 2:
+            case 3:
                 if (BuildConfig.DEBUG) {
                     startActivity(new Intent(this, ePSXePreferences.class));
                     stopEmulation();
@@ -4438,7 +4442,7 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
                     break;
                 }
                 break;
-            case 3:
+            case 4:
                 if (this.emu_enable_gamefaq == 1 && (this.emu_renderer == 2 || this.emu_renderer == 4 || this.emu_renderer == 5)) {
                     if (this.emu_renderer == 2 || this.emu_renderer == 4) {
                         if (!DeviceUtil.isAndroidTV(mContext)) {
@@ -4462,7 +4466,7 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
                     break;
                 }
                 break;
-            case 4:
+            case 5:
                 alertdialog_quitGame();
                 break;
         }
@@ -4472,13 +4476,43 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
         ArrayAdapter<String> adapter;
         String[] itemsGame;
         if (BuildConfig.DEBUG) {
-            itemsGame = new String[]{getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.fbutton_preferences), getString(R.string.fbutton_quit)};
+            itemsGame = new String[]{
+                    getString(R.string.menu_resume_game),
+                    getString(R.string.menu_loadstate),
+                    getString(R.string.menu_savestate),
+                    getString(R.string.fbutton_preferences),
+                    getString(R.string.fbutton_quit)
+            };
         } else {
-            itemsGame = new String[]{getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.fbutton_quit)};
+            itemsGame = new String[]{
+                    getString(R.string.menu_resume_game),
+                    getString(R.string.menu_loadstate),
+                    getString(R.string.menu_savestate),
+                    getString(R.string.fbutton_quit)
+            };
         }
-        String[] itemsGameFaq = {getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.menu_faq), getString(R.string.fbutton_quit)};
-        String[] itemsGameGL = {getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.menu_tools), getString(R.string.fbutton_quit)};
-        String[] itemsGameFaqGL = {getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.menu_faq), getString(R.string.menu_tools), getString(R.string.fbutton_quit)};
+        String[] itemsGameFaq = {
+                getString(R.string.menu_resume_game),
+                getString(R.string.menu_loadstate),
+                getString(R.string.menu_savestate),
+                getString(R.string.menu_faq),
+                getString(R.string.fbutton_quit)
+        };
+        String[] itemsGameGL = {
+                getString(R.string.menu_resume_game),
+                getString(R.string.menu_loadstate),
+                getString(R.string.menu_savestate),
+                getString(R.string.menu_tools),
+                getString(R.string.fbutton_quit)
+        };
+        String[] itemsGameFaqGL = {
+                getString(R.string.menu_resume_game),
+                getString(R.string.menu_loadstate),
+                getString(R.string.menu_savestate),
+                getString(R.string.menu_faq),
+                getString(R.string.menu_tools),
+                getString(R.string.fbutton_quit)
+        };
         String[] itemsBios = {getString(R.string.menu_framelimit), getString(R.string.fbutton_quit)};
         String[] itemsNetplay = {getString(R.string.menu_framelimit), getString(R.string.fbutton_quit)};
         String[] itemsNetplayServer = {getString(R.string.menu_framelimit), getString(R.string.menu_loadstate), getString(R.string.menu_savestate), getString(R.string.fbutton_quit)};
