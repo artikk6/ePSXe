@@ -1137,7 +1137,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
 
             return ret;
         }
-        if (mov == 0 && this.padScreenExtraEnabled == 1) {
+        if (mov == 0 && this.padScreenExtraEnabled == 1 && !this.hidePad) {
             for (int i2 = 0; i2 < 6; i2++) {
                 if (this.padScreenFunc[i2] == 1 && xi >= this.virtualPadPos[i2 + 23][0] && xi <= this.virtualPadPos[i2 + 23][2] && yi >= this.virtualPadPos[i2 + 23][1] && yi <= this.virtualPadPos[i2 + 23][3]) {
                     if (this.padScreenExtra[i2] >= 0 && this.padScreenExtra[i2] < 5) {
@@ -1883,7 +1883,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                 GLES20.glBindTexture(3553, this.mTexExtra);
                                 GLES20.glUseProgram(this.mProgram);
                                 GLES20.glEnable(3042);
-                                if (ePSXeViewGL.this.padScreenExtraEnabled == 1) {
+                                if (ePSXeViewGL.this.padScreenExtraEnabled == 1 && !ePSXeViewGL.this.hidePad) {
                                     for (int i2 = 14; i2 < 20; i2++) {
                                         if (ePSXeViewGL.this.padScreenStatus[ePSXeViewGL.this.mode][i2] == 1) {
                                             if (ePSXeViewGL.this.padScreenExtra[i2 - 14] >= 20 && ePSXeViewGL.this.stickyButton[ePSXeViewGL.this.padScreenExtra[i2 - 14] - 20] == 1) {
@@ -1940,7 +1940,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                             this.batchPor.beginBatch(this.mTexPor);
                             this.batchPor.drawSprite(ePSXeViewGL.this.padOffScreenPor[0] / ePSXeViewGL.this.mWidth, ePSXeViewGL.this.padOffScreenPor[1] / ePSXeViewGL.this.mHeight, ePSXeViewGL.this.padSizeScreenPor[0] / ePSXeViewGL.this.mWidth, ePSXeViewGL.this.padSizeScreenPor[1] / ePSXeViewGL.this.mHeight, this.textureRgnPor);
                             this.batchPor.endBatch();
-                            if (ePSXeViewGL.this.padScreenExtraEnabled == 1) {
+                            if (ePSXeViewGL.this.padScreenExtraEnabled == 1 && !ePSXeViewGL.this.hidePad) {
                                 GLES20.glBindTexture(3553, this.mTexExtra);
                                 GLES20.glUseProgram(this.mProgram);
                                 GLES20.glEnable(3042);
@@ -2955,7 +2955,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                         }
                                     }
                                 }
-                                if (ePSXeViewGL.this.padScreenExtraEnabled == 1) {
+                                if (ePSXeViewGL.this.padScreenExtraEnabled == 1 && !ePSXeViewGL.this.hidePad) {
                                     gl.glBindTexture(3553, this.mTexExtra);
                                     for (int i2 = 14; i2 < 20; i2++) {
                                         if ((ePSXeViewGL.this.padScreenStatus[ePSXeViewGL.this.mode][i2] & 2) != 2) {
@@ -3051,7 +3051,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                             this.batchPor.drawSprite(ePSXeViewGL.this.padOffScreenPor[0], ePSXeViewGL.this.padOffScreenPor[1], ePSXeViewGL.this.padSizeScreenPor[0], ePSXeViewGL.this.padSizeScreenPor[1], this.textureRgnPor);
                             this.batchPor.endBatch();
                             gl.glDisableClientState(32884);
-                            if (ePSXeViewGL.this.padScreenExtraEnabled == 1) {
+                            if (ePSXeViewGL.this.padScreenExtraEnabled == 1 && !ePSXeViewGL.this.hidePad) {
                                 gl.glEnable(3042);
                                 gl.glBlendFunc(770, 771);
                                 gl.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);

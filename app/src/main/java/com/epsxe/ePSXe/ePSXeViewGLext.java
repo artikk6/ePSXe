@@ -1293,7 +1293,7 @@ class ePSXeViewGLext extends GLSurfaceView implements ePSXeView {
         if (this.emu_enable_tools == 1 && mov == 0 && x >= (this.mWidth - (508.0f * this.padResize)) / 2.0f && x <= ((this.mWidth - (508.0f * this.padResize)) / 2.0f) + (this.padResize * 508.0f) && y >= 0 && y <= 60.0f * this.padResize) {
             exec_tools(x, y);
         }
-        if (mov == 0 && this.padScreenExtraEnabled == 1) {
+        if (mov == 0 && this.padScreenExtraEnabled == 1 && !this.hidePad) {
             for (int i2 = 0; i2 < 6; i2++) {
                 if (this.padScreenFunc[i2] == 1 && x >= this.virtualPadPos[i2 + 23][0] && x <= this.virtualPadPos[i2 + 23][2] && y >= this.virtualPadPos[i2 + 23][1] && y <= this.virtualPadPos[i2 + 23][3]) {
                     if (this.padScreenExtra[i2] >= 0 && this.padScreenExtra[i2] < 5) {
@@ -2313,7 +2313,7 @@ class ePSXeViewGLext extends GLSurfaceView implements ePSXeView {
                     this.batchPor.endBatch();
                     gl.glBlendFunc(770, 771);
                     gl.glColor4f(1.0f, 1.0f, 1.0f, ePSXeViewGLext.this.emu_input_alpha);
-                    if (ePSXeViewGLext.this.padScreenExtraEnabled == 1) {
+                    if (ePSXeViewGLext.this.padScreenExtraEnabled == 1 && !ePSXeViewGLext.this.hidePad) {
                         gl.glBindTexture(3553, this.mTexExtra);
                         for (int i = 14; i < 20; i++) {
                             if ((ePSXeViewGLext.this.padScreenStatus[ePSXeViewGLext.this.mode][i] & 2) != 2) {
@@ -2431,7 +2431,7 @@ class ePSXeViewGLext extends GLSurfaceView implements ePSXeView {
                         }
                     }
                 }
-                if (ePSXeViewGLext.this.padScreenExtraEnabled == 1) {
+                if (ePSXeViewGLext.this.padScreenExtraEnabled == 1 && !ePSXeViewGLext.this.hidePad) {
                     gl.glBindTexture(3553, this.mTexExtra);
                     for (int i3 = 14; i3 < 20; i3++) {
                         if (ePSXeViewGLext.this.padScreenStatus[ePSXeViewGLext.this.mode][i3] == 1) {

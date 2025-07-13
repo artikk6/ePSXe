@@ -1397,7 +1397,7 @@ class ePSXeViewGL2ext extends GLSurfaceView implements ePSXeView {
                 exec_tools(x, y);
             }
         }
-        if (mov == 0 && this.padScreenExtraEnabled == 1) {
+        if (mov == 0 && this.padScreenExtraEnabled == 1 && !this.hidePad) {
             for (int i2 = 0; i2 < 6; i2++) {
                 if (this.padScreenFunc[i2] == 1 && x >= this.virtualPadPos[i2 + 23][0] && x <= this.virtualPadPos[i2 + 23][2] && y >= this.virtualPadPos[i2 + 23][1] && y <= this.virtualPadPos[i2 + 23][3]) {
                     if (this.padScreenExtra[i2] >= 0 && this.padScreenExtra[i2] < 5) {
@@ -2483,7 +2483,7 @@ class ePSXeViewGL2ext extends GLSurfaceView implements ePSXeView {
                     GLES20.glBindTexture(3553, this.mTexExtra);
                     GLES20.glUseProgram(this.mProgram);
                     GLES20.glEnable(3042);
-                    if (ePSXeViewGL2ext.this.padScreenExtraEnabled == 1) {
+                    if (ePSXeViewGL2ext.this.padScreenExtraEnabled == 1 && !ePSXeViewGL2ext.this.hidePad) {
                         for (int i2 = 14; i2 < 20; i2++) {
                             if (ePSXeViewGL2ext.this.padScreenStatus[ePSXeViewGL2ext.this.mode][i2] == 1) {
                                 if (ePSXeViewGL2ext.this.padScreenExtra[i2 - 14] >= 20 && ePSXeViewGL2ext.this.stickyButton[ePSXeViewGL2ext.this.padScreenExtra[i2 - 14] - 20] == 1) {
@@ -2509,7 +2509,7 @@ class ePSXeViewGL2ext extends GLSurfaceView implements ePSXeView {
                 this.batchPor.drawSprite(ePSXeViewGL2ext.this.padOffScreenPor[0] / ePSXeViewGL2ext.this.mWidth, ePSXeViewGL2ext.this.padOffScreenPor[1] / ePSXeViewGL2ext.this.mHeight, ePSXeViewGL2ext.this.padSizeScreenPor[0] / ePSXeViewGL2ext.this.mWidth, ePSXeViewGL2ext.this.padSizeScreenPor[1] / ePSXeViewGL2ext.this.mHeight, this.textureRgnPor);
                 this.batchPor.endBatch();
                 GLES20.glBlendFunc(770, 771);
-                if (ePSXeViewGL2ext.this.padScreenExtraEnabled == 1) {
+                if (ePSXeViewGL2ext.this.padScreenExtraEnabled == 1 && !ePSXeViewGL2ext.this.hidePad) {
                     GLES20.glBindTexture(3553, this.mTexExtra);
                     GLES20.glUseProgram(this.mProgram);
                     GLES20.glEnable(3042);
