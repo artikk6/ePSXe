@@ -501,18 +501,37 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         if (!inDpadZone) {
             return -1;
         }
+        
         int closestButton = 12;
         float minDistance = Float.MAX_VALUE;
+        float[] distances = new float[4];
 
+        // Вычисляем расстояния до всех кнопок
         for (int i = 0; i < 4; i++) {
             float dx = touchX - buttonData[i][0];
             float dy = touchY - buttonData[i][1];
-            float distance = dx*dx + dy*dy;
+            distances[i] = dx*dx + dy*dy;
 
-            if (distance < minDistance) {
-                minDistance = distance;
+            if (distances[i] < minDistance) {
+                minDistance = distances[i];
                 closestButton = 12 + i;
             }
+        }
+
+        // Проверяем, не слишком ли близко находятся две кнопки
+        // Если разница между ближайшей и второй ближайшей кнопкой меньше 20%, 
+        // то считаем, что касание между кнопками и не анимируем ничего
+        float secondMinDistance = Float.MAX_VALUE;
+        for (int i = 0; i < 4; i++) {
+            if (distances[i] > minDistance && distances[i] < secondMinDistance) {
+                secondMinDistance = distances[i];
+            }
+        }
+        
+        // Если разница между ближайшими кнопками меньше 30%, не анимируем
+        if (secondMinDistance != Float.MAX_VALUE && 
+            (secondMinDistance - minDistance) / minDistance < 0.3f) {
+            return -1; // Не анимируем ничего при касании между кнопками
         }
 
         return closestButton;
@@ -1111,11 +1130,15 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         int ext2 = 0;
         int mov = 0;
         int found = 0;
-        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+        if (action == MotionEvent.ACTION_DOWN) {
             this.lastTouchX = xi;
             this.lastTouchY = yi;
             this.animationButtonIndex = getClosestDpadButton(xi, yi);
             this.isDpadTouchActive = (this.animationButtonIndex != -1);
+        } else if (action == MotionEvent.ACTION_MOVE) {
+            this.lastTouchX = xi;
+            this.lastTouchY = yi;
+            // При движении НЕ меняем выбранную кнопку - она фиксируется до отпускания
         } else if (action == MotionEvent.ACTION_UP) {
             this.isDpadTouchActive = false;
             this.animationButtonIndex = -1;
