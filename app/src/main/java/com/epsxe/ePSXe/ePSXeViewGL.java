@@ -477,61 +477,58 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         }
     }
 
-    private int getClosestDpadButton(int touchX, int touchY) {
-        int[][] buttonData = {
-                {(virtualPadPos[12][0] + virtualPadPos[12][2])/2, (virtualPadPos[12][1] + virtualPadPos[12][3])/2, 50},
-                {(virtualPadPos[13][0] + virtualPadPos[13][2])/2, (virtualPadPos[13][1] + virtualPadPos[13][3])/2, 50},
-                {(virtualPadPos[14][0] + virtualPadPos[14][2])/2, (virtualPadPos[14][1] + virtualPadPos[14][3])/2, 50},
-                {(virtualPadPos[15][0] + virtualPadPos[15][2])/2, (virtualPadPos[15][1] + virtualPadPos[15][3])/2, 50}
-        };
-
-        boolean inDpadZone = false;
-        int dpadLeft = Integer.MAX_VALUE, dpadRight = 0, dpadTop = Integer.MAX_VALUE, dpadBottom = 0;
-
-        for (int i = 12; i <= 15; i++) {
-            dpadLeft = Math.min(dpadLeft, virtualPadPos[i][0]);
-            dpadRight = Math.max(dpadRight, virtualPadPos[i][2]);
-            dpadTop = Math.min(dpadTop, virtualPadPos[i][1]);
-            dpadBottom = Math.max(dpadBottom, virtualPadPos[i][3]);
-        }
-        int padding = (int)((dpadRight - dpadLeft) * 0.2);
-        inDpadZone = (touchX >= dpadLeft - padding) && (touchX <= dpadRight + padding) &&
-                (touchY >= dpadTop - padding) && (touchY <= dpadBottom + padding);
-
-        if (!inDpadZone) {
+    private int getAnimatedDpadButton(int touchX, int touchY) {
+        // Проверка попадания в общую зону D-Pad
+        if (!isInDpadZone(touchX, touchY)) {
             return -1;
         }
-        
-        int closestButton = 12;
+
+        // 1. Проверяем прямое попадание в кнопки
+        for (int i = 12; i <= 15; i++) {
+            if (touchX >= virtualPadPos[i][0] && touchX <= virtualPadPos[i][2] &&
+                    touchY >= virtualPadPos[i][1] && touchY <= virtualPadPos[i][3]) {
+                return i;
+            }
+        }
+
+        // 2. Если не попали прямо в кнопку, ищем ближайшую
+        return getNearestButton(touchX, touchY);
+    }
+
+    private boolean isInDpadZone(int x, int y) {
+        // Вычисляем общие границы всех кнопок D-Pad
+        int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
+        int right = 0, bottom = 0;
+
+        for (int i = 12; i <= 15; i++) {
+            left = Math.min(left, virtualPadPos[i][0]);
+            top = Math.min(top, virtualPadPos[i][1]);
+            right = Math.max(right, virtualPadPos[i][2]);
+            bottom = Math.max(bottom, virtualPadPos[i][3]);
+        }
+
+        // Расширяем зону на 20% во все стороны
+        int padding = (int)((right - left) * 0.2);
+        return x >= (left - padding) && x <= (right + padding) &&
+                y >= (top - padding) && y <= (bottom + padding);
+    }
+
+    private int getNearestButton(int touchX, int touchY) {
+        // Приоритеты кнопок: UP > DOWN > LEFT > RIGHT
+        final int[] priorityOrder = {12, 14, 15, 13};
         float minDistance = Float.MAX_VALUE;
-        float[] distances = new float[4];
+        int closestButton = -1;
 
-        // Вычисляем расстояния до всех кнопок
-        for (int i = 0; i < 4; i++) {
-            float dx = touchX - buttonData[i][0];
-            float dy = touchY - buttonData[i][1];
-            distances[i] = dx*dx + dy*dy;
+        for (int i = 0; i < priorityOrder.length; i++) {
+            int btn = priorityOrder[i];
+            int centerX = (virtualPadPos[btn][0] + virtualPadPos[btn][2]) / 2;
+            int centerY = (virtualPadPos[btn][1] + virtualPadPos[btn][3]) / 2;
+            float distance = (touchX-centerX)*(touchX-centerX) + (touchY-centerY)*(touchY-centerY);
 
-            if (distances[i] < minDistance) {
-                minDistance = distances[i];
-                closestButton = 12 + i;
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestButton = btn;
             }
-        }
-
-        // Проверяем, не слишком ли близко находятся две кнопки
-        // Если разница между ближайшей и второй ближайшей кнопкой меньше 20%, 
-        // то считаем, что касание между кнопками и не анимируем ничего
-        float secondMinDistance = Float.MAX_VALUE;
-        for (int i = 0; i < 4; i++) {
-            if (distances[i] > minDistance && distances[i] < secondMinDistance) {
-                secondMinDistance = distances[i];
-            }
-        }
-        
-        // Если разница между ближайшими кнопками меньше 30%, не анимируем
-        if (secondMinDistance != Float.MAX_VALUE && 
-            (secondMinDistance - minDistance) / minDistance < 0.3f) {
-            return -1; // Не анимируем ничего при касании между кнопками
         }
 
         return closestButton;
@@ -1133,7 +1130,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         if (action == MotionEvent.ACTION_DOWN) {
             this.lastTouchX = xi;
             this.lastTouchY = yi;
-            this.animationButtonIndex = getClosestDpadButton(xi, yi);
+            this.animationButtonIndex = getAnimatedDpadButton(xi, yi);
             this.isDpadTouchActive = (this.animationButtonIndex != -1);
         } else if (action == MotionEvent.ACTION_MOVE) {
             this.lastTouchX = xi;
