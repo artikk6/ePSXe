@@ -478,25 +478,19 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
     }
 
     private int getAnimatedDpadButton(int touchX, int touchY) {
-        // Проверка попадания в общую зону D-Pad
         if (!isInDpadZone(touchX, touchY)) {
             return -1;
         }
-
-        // 1. Проверяем прямое попадание в кнопки
         for (int i = 12; i <= 15; i++) {
             if (touchX >= virtualPadPos[i][0] && touchX <= virtualPadPos[i][2] &&
                     touchY >= virtualPadPos[i][1] && touchY <= virtualPadPos[i][3]) {
                 return i;
             }
         }
-
-        // 2. Если не попали прямо в кнопку, ищем ближайшую
         return getNearestButton(touchX, touchY);
     }
 
     private boolean isInDpadZone(int x, int y) {
-        // Вычисляем общие границы всех кнопок D-Pad
         int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
         int right = 0, bottom = 0;
 
@@ -506,15 +500,12 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
             right = Math.max(right, virtualPadPos[i][2]);
             bottom = Math.max(bottom, virtualPadPos[i][3]);
         }
-
-        // Расширяем зону на 20% во все стороны
         int padding = (int)((right - left) * 0.2);
         return x >= (left - padding) && x <= (right + padding) &&
                 y >= (top - padding) && y <= (bottom + padding);
     }
 
     private int getNearestButton(int touchX, int touchY) {
-        // Приоритеты кнопок: UP > DOWN > LEFT > RIGHT
         final int[] priorityOrder = {12, 14, 15, 13};
         float minDistance = Float.MAX_VALUE;
         int closestButton = -1;
@@ -1117,6 +1108,8 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
             this.touchButtonIds[i] = -1;
         }
     }
+    private int analogStickPointerId = -1;
+    private int analogStickIndex = -1;
 
     public int touchscreenevent(long eventTime, int action, int xi, int yi, float pressure, float size, int deviceId, int Id) {
         int ret = 0;
@@ -1127,6 +1120,101 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         int ext2 = 0;
         int mov = 0;
         int found = 0;
+        if (analogStickPointerId != -1 && Id == analogStickPointerId && analogStickIndex != -1) {
+            if (action == MotionEvent.ACTION_MOVE) {
+
+                int centerX = (this.virtualPadPos[analogStickIndex][0] + this.virtualPadPos[analogStickIndex][2]) / 2;
+                int centerY = (this.virtualPadPos[analogStickIndex][1] + this.virtualPadPos[analogStickIndex][3]) / 2;
+                int radius = (this.virtualPadPos[analogStickIndex][2] - this.virtualPadPos[analogStickIndex][0]) / 2;
+                int dx = xi - centerX;
+                int dy = yi - centerY;
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > radius) {
+                    double scale = radius / dist;
+                    dx = (int) (dx * scale);
+                    dy = (int) (dy * scale);
+                }
+                int limitedX = centerX + dx;
+                int limitedY = centerY + dy;
+                int tx = this.virtualPadPos[analogStickIndex][2] - this.virtualPadPos[analogStickIndex][0];
+                int ty = this.virtualPadPos[analogStickIndex][3] - this.virtualPadPos[analogStickIndex][1];
+                int xa2 = ((limitedX - this.virtualPadPos[analogStickIndex][0]) * 255) / tx;
+                int ya2 = ((limitedY - this.virtualPadPos[analogStickIndex][1]) * 255) / ty;
+                int pad3 = ((this.virtualPadBit[analogStickIndex] >> 16) & 1) ^ 1;
+                if (analogStickIndex == 20) {
+                    this.analog_values[0][0] = limitedX;
+                    this.analog_values[0][1] = this.mHeight - limitedY;
+                }
+                if (analogStickIndex == 21) {
+                    this.analog_values[0][2] = limitedX;
+                    this.analog_values[0][3] = this.mHeight - limitedY;
+                }
+                this.f165e.setpadanalog(pad3, analogStickIndex - 20, xa2 - 128, ya2 - 128);
+                this.virtualPadId[Id] = analogStickIndex;
+                return 1;
+            }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+                int pad = ((this.virtualPadBit[analogStickIndex] >> 16) & 1) ^ 1;
+                this.f165e.setpadanalog(pad, analogStickIndex - 20, 0, 0);
+
+                int centerX = (this.virtualPadPos[analogStickIndex][0] + this.virtualPadPos[analogStickIndex][2]) / 2;
+                int centerY = (this.virtualPadPos[analogStickIndex][1] + this.virtualPadPos[analogStickIndex][3]) / 2;
+                if (analogStickIndex == 20) {
+                    this.analog_values[0][0] = centerX;
+                    this.analog_values[0][1] = this.mHeight - centerY;
+                }
+                if (analogStickIndex == 21) {
+                    this.analog_values[0][2] = centerX;
+                    this.analog_values[0][3] = this.mHeight - centerY;
+                }
+                analogStickPointerId = -1;
+                analogStickIndex = -1;
+                this.virtualPadId[Id] = -1;
+                return 1;
+            }
+
+            return 1;
+        }
+
+        if (analogStickPointerId == -1 && (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN)) {
+            for (int analogIdx = 20; analogIdx <= 21; analogIdx++) {
+                if (xi >= this.virtualPadPos[analogIdx][0] && xi <= this.virtualPadPos[analogIdx][2] &&
+                        yi >= this.virtualPadPos[analogIdx][1] && yi <= this.virtualPadPos[analogIdx][3]) {
+                    analogStickPointerId = Id;
+                    analogStickIndex = analogIdx;
+
+                    int centerX = (this.virtualPadPos[analogStickIndex][0] + this.virtualPadPos[analogStickIndex][2]) / 2;
+                    int centerY = (this.virtualPadPos[analogStickIndex][1] + this.virtualPadPos[analogStickIndex][3]) / 2;
+                    int radius = (this.virtualPadPos[analogStickIndex][2] - this.virtualPadPos[analogStickIndex][0]) / 2;
+                    int dx = xi - centerX;
+                    int dy = yi - centerY;
+                    double dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > radius) {
+                        double scale = radius / dist;
+                        dx = (int) (dx * scale);
+                        dy = (int) (dy * scale);
+                    }
+                    int limitedX = centerX + dx;
+                    int limitedY = centerY + dy;
+                    int tx = this.virtualPadPos[analogStickIndex][2] - this.virtualPadPos[analogStickIndex][0];
+                    int ty = this.virtualPadPos[analogStickIndex][3] - this.virtualPadPos[analogStickIndex][1];
+                    int xa2 = ((limitedX - this.virtualPadPos[analogStickIndex][0]) * 255) / tx;
+                    int ya2 = ((limitedY - this.virtualPadPos[analogStickIndex][1]) * 255) / ty;
+                    int pad3 = ((this.virtualPadBit[analogStickIndex] >> 16) & 1) ^ 1;
+                    if (analogStickIndex == 20) {
+                        this.analog_values[0][0] = limitedX;
+                        this.analog_values[0][1] = this.mHeight - limitedY;
+                    }
+                    if (analogStickIndex == 21) {
+                        this.analog_values[0][2] = limitedX;
+                        this.analog_values[0][3] = this.mHeight - limitedY;
+                    }
+                    this.f165e.setpadanalog(pad3, analogStickIndex - 20, xa2 - 128, ya2 - 128);
+                    this.virtualPadId[Id] = analogStickIndex;
+                    return 1;
+                }
+            }
+        }
         if (action == MotionEvent.ACTION_DOWN) {
             this.lastTouchX = xi;
             this.lastTouchY = yi;
@@ -1135,7 +1223,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         } else if (action == MotionEvent.ACTION_MOVE) {
             this.lastTouchX = xi;
             this.lastTouchY = yi;
-            // При движении НЕ меняем выбранную кнопку - она фиксируется до отпускания
+
         } else if (action == MotionEvent.ACTION_UP) {
             this.isDpadTouchActive = false;
             this.animationButtonIndex = -1;
@@ -1551,11 +1639,11 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
     public boolean dispatchTouchEvent(MotionEvent ev) {
         queueMotionEvent(ev);
         switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN: // нажатие
-            case MotionEvent.ACTION_MOVE: // движение
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_MOVE:
                 isInTouch = true;
                 break;
-            case MotionEvent.ACTION_UP: // отпускание
+            case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 isInTouch = false;
                 break;
@@ -1961,10 +2049,10 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                 for (int p = 0; p < 4; p++) {
                                                     if (ePSXeViewGL.this.isDpadTouchActive && ePSXeViewGL.this.animationButtonIndex != -1) {
                                                         int buttonMapping = -1;
-                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0; // вверх
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1; // вправо
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2; // вниз
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3; // влево
+                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3;
 
                                                         if (buttonMapping == p) {
                                                             this.batchLanDpad[p].beginBatch(this.mTexLan);
@@ -3042,17 +3130,14 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                 float ox = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 0] - (sx / 2.0f);
                                                 float oy = ePSXeViewGL.this.padOffScreenLan[ePSXeViewGL.this.mode][(i * 2) + 1] - (sy / 2.0f);
                                                 for (int p = 0; p < 4; p++) {
-                                                    // Проверяем, является ли эта кнопка выбранной для анимации
+
                                                     if (ePSXeViewGL.this.isDpadTouchActive && ePSXeViewGL.this.animationButtonIndex != -1) {
-                                                        // Маппинг кнопок D-Pad: 0=вверх, 1=вправо, 2=вниз, 3=влево
-                                                        // Индексы кнопок в системе: 12=вверх, 13=вправо, 14=вниз, 15=влево
                                                         int buttonMapping = -1;
-                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0; // вверх
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1; // вправо
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2; // вниз
-                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3; // влево
-                                                        
-                                                        // Анимируем только выбранную кнопку
+                                                        if (ePSXeViewGL.this.animationButtonIndex == 12) buttonMapping = 0;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 13) buttonMapping = 1;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 14) buttonMapping = 2;
+                                                        else if (ePSXeViewGL.this.animationButtonIndex == 15) buttonMapping = 3;
+
                                                         if (buttonMapping == p) {
                                                             this.batchLanDpad[p].beginBatch();
                                                             this.batchLanDpad[p].drawSprite(
@@ -3069,7 +3154,6 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                                                             this.batchLanDpad[p].endBatch();
                                                         }
                                                     } else {
-                                                        // Стандартная логика без анимации
                                                         if ((ePSXeViewGL.this.statebuttons & (4096 << p)) == 0) {
                                                             if (ePSXeViewGL.this.emu_pad_draw_mode[0] != 4) {
                                                                 this.batchLanDpad[p].beginBatch();
