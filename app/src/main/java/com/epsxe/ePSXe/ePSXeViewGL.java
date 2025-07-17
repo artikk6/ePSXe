@@ -30,6 +30,7 @@ import org.apache.http.HttpStatus;
 
 /* loaded from: classes.dex */
 class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
+    private boolean useDiagonal = false; // FALSE ЕСЛИ ДИАГОНАЛЬНАЯ АНИМАЦИЯ НЕ ТРЕБУЕТСЯ, TRUE ЕСЛИ ТРЕБУЕТСЯ
     private int lastTouchX = -1;
     private int lastTouchY = -1;
     private int animationButtonIndex = -1;
@@ -133,6 +134,14 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
     private boolean hidePad = false;
     private boolean isInTouch = false;
     private ePSXeView.OnTouchListener touchListener;
+
+    public int getStatebuttons() {
+        return statebuttons;
+    }
+
+    public static void setStatebuttons(int statebuttons) {
+        statebuttons = statebuttons;
+    }
 
     @Override
     public void setHidePad(boolean hide) {
@@ -475,55 +484,7 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
                 this.emu_split_mode = 1;
             }
         }
-    }
-
-    private int getAnimatedDpadButton(int touchX, int touchY) {
-        if (!isInDpadZone(touchX, touchY)) {
-            return -1;
-        }
-        for (int i = 12; i <= 15; i++) {
-            if (touchX >= virtualPadPos[i][0] && touchX <= virtualPadPos[i][2] &&
-                    touchY >= virtualPadPos[i][1] && touchY <= virtualPadPos[i][3]) {
-                return i;
-            }
-        }
-        return getNearestButton(touchX, touchY);
-    }
-
-    private boolean isInDpadZone(int x, int y) {
-        int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
-        int right = 0, bottom = 0;
-
-        for (int i = 12; i <= 15; i++) {
-            left = Math.min(left, virtualPadPos[i][0]);
-            top = Math.min(top, virtualPadPos[i][1]);
-            right = Math.max(right, virtualPadPos[i][2]);
-            bottom = Math.max(bottom, virtualPadPos[i][3]);
-        }
-        int padding = (int)((right - left) * 0.2);
-        return x >= (left - padding) && x <= (right + padding) &&
-                y >= (top - padding) && y <= (bottom + padding);
-    }
-
-    private int getNearestButton(int touchX, int touchY) {
-        final int[] priorityOrder = {12, 14, 15, 13};
-        float minDistance = Float.MAX_VALUE;
-        int closestButton = -1;
-
-        for (int i = 0; i < priorityOrder.length; i++) {
-            int btn = priorityOrder[i];
-            int centerX = (virtualPadPos[btn][0] + virtualPadPos[btn][2]) / 2;
-            int centerY = (virtualPadPos[btn][1] + virtualPadPos[btn][3]) / 2;
-            float distance = (touchX-centerX)*(touchX-centerX) + (touchY-centerY)*(touchY-centerY);
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestButton = btn;
-            }
-        }
-
-        return closestButton;
-    }
+}
 
     @Override // com.epsxe.ePSXe.ePSXeView
     public void setsplitmode(int spmode) {
@@ -1218,7 +1179,18 @@ class ePSXeViewGL extends GLSurfaceView implements ePSXeView {
         if (action == MotionEvent.ACTION_DOWN) {
             this.lastTouchX = xi;
             this.lastTouchY = yi;
-            this.animationButtonIndex = getAnimatedDpadButton(xi, yi);
+            if (useDiagonal) {
+                this.animationButtonIndex = AnimateButton.handleDpadDynamic(
+                        xi, yi, virtualPadId, dpadsection, virtualPadBit,
+                        statebuttons, padOffScreenLan,
+                        padSizeScreenLan, padScreenResize,
+                        mode, emu_pad_mode,
+                        emu_pad_mode_analog, emu_pad_type_selected,
+                        mHeight, f165e);
+            }
+            if (!useDiagonal) {
+                this.animationButtonIndex = AnimateButton.getAnimatedDpadButton(xi, yi, virtualPadPos);
+            }
             this.isDpadTouchActive = (this.animationButtonIndex != -1);
         } else if (action == MotionEvent.ACTION_MOVE) {
             this.lastTouchX = xi;
