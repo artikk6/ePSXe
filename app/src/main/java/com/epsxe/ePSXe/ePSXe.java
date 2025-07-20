@@ -48,6 +48,7 @@ import android.widget.Toast;
 import com.epsxe.ePSXe.dialog.AboutDialog;
 import com.epsxe.ePSXe.dialog.ChangediscDialog;
 import com.epsxe.ePSXe.dialog.CheatDialog;
+import com.epsxe.ePSXe.dialog.MultiDiscChangeDialog;
 import com.epsxe.ePSXe.dialog.CommonDialog;
 import com.epsxe.ePSXe.dialog.GetIPAddressDialog;
 import com.epsxe.ePSXe.dialog.ResetDialog;
@@ -187,6 +188,7 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
     private int emuStatus = 0;
     private int emuStatusPrev = 0;
     private IsoFileSelected mIsoName = new IsoFileSelected("", 0);
+    private MultiDiscGame multiDiscGame = null;
     private Boolean snapRestoring = false;
     private ePSXeSound mePSXeSound = null;
     private int fps = 60;
@@ -1655,7 +1657,7 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
             if (param6 != null && param6.length() > 0) {
                 this.serverMode = Integer.parseInt(param6);
             }
-            if (true) {
+            if (1 == 2) {
                 // Fix pad type
                 this.emu_padType = 1;
 
@@ -4200,7 +4202,14 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
                 switch (position) {
                     case 0:
                         if (ePSXe.this.emuStatus == 1) {
-                            ChangediscDialog.showChangediscDialog(mCont, ePSXe.this.f153e, ePSXe.this.currentPath, ePSXe.this.mIsoName);
+                            // Проверяем, является ли это многодисковой игрой
+                            if (ePSXe.this.multiDiscGame != null && ePSXe.this.multiDiscGame.isMultiDisc()) {
+                                // Используем новый диалог для многодисковых игр
+                                MultiDiscChangeDialog.showMultiDiscChangeDialog(mCont, ePSXe.this.f153e, ePSXe.this.multiDiscGame);
+                            } else {
+                                // Используем старый диалог для обычных игр
+                                ChangediscDialog.showChangediscDialog(mCont, ePSXe.this.f153e, ePSXe.this.currentPath, ePSXe.this.mIsoName);
+                            }
                             DialogUtil.closeDialog(ePSXe.this.men2Alert);
                             break;
                         }
@@ -4960,5 +4969,97 @@ public class ePSXe extends LicenseCheckActivity implements SensorEventListener {
             Log.e("epsxekey", "keycode[" + i + "][" + j + "] = " + this.keycodes[i][j]);
         }
         this.keycodes[i][19] = Integer.parseInt(gamepadData[24]);
+    }
+
+    // Методы для работы с многодисковыми играми
+
+    /**
+     * Устанавливает многодисковую игру
+     */
+    public void setMultiDiscGame(MultiDiscGame multiDiscGame) {
+        this.multiDiscGame = multiDiscGame;
+    }
+
+    /**
+     * Получает многодисковую игру
+     */
+    public MultiDiscGame getMultiDiscGame() {
+        return multiDiscGame;
+    }
+
+    /**
+     * Проверяет, является ли текущая игра многодисковой
+     */
+    public boolean isMultiDiscGame() {
+        return multiDiscGame != null && multiDiscGame.isMultiDisc();
+    }
+
+    /**
+     * Создает многодисковую игру из списка образов
+     */
+    public void createMultiDiscGame(String gameName, String[] isoPaths, int[] slots) {
+        if (isoPaths == null || slots == null || isoPaths.length != slots.length) {
+            Log.e("ePSXe", "Invalid parameters for multi-disc game creation");
+            return;
+        }
+
+        multiDiscGame = new MultiDiscGame(gameName);
+        for (int i = 0; i < isoPaths.length; i++) {
+            multiDiscGame.addDisc(isoPaths[i], slots[i]);
+        }
+
+        Log.e("ePSXe", "Created multi-disc game: " + gameName + " with " + multiDiscGame.getDiscCount() + " discs");
+    }
+
+    /**
+     * Создает многодисковую игру из списка образов с пользовательскими именами дисков
+     */
+    public void createMultiDiscGame(String gameName, String[] isoPaths, int[] slots, String[] discNames) {
+        if (isoPaths == null || slots == null || discNames == null || 
+            isoPaths.length != slots.length || isoPaths.length != discNames.length) {
+            Log.e("ePSXe", "Invalid parameters for multi-disc game creation");
+            return;
+        }
+
+        multiDiscGame = new MultiDiscGame(gameName);
+        for (int i = 0; i < isoPaths.length; i++) {
+            multiDiscGame.addDisc(isoPaths[i], slots[i], discNames[i]);
+        }
+
+        Log.e("ePSXe", "Created multi-disc game: " + gameName + " with " + multiDiscGame.getDiscCount() + " discs");
+    }
+
+    /**
+     * Сменяет на следующий диск в многодисковой игре
+     */
+    public void changeToNextDisc() {
+        if (multiDiscGame != null && multiDiscGame.isMultiDisc()) {
+            int currentIndex = multiDiscGame.getCurrentDiscIndex();
+            int nextIndex = (currentIndex + 1) % multiDiscGame.getDiscCount();
+            
+            MultiDiscGame.DiscInfo nextDisc = multiDiscGame.getDisc(nextIndex);
+            if (nextDisc != null) {
+                Log.e("ePSXe", "Changing to next disc: " + nextDisc.getDiscName());
+                f153e.changedisc(nextDisc.getIsoPath(), nextDisc.getSlot());
+                multiDiscGame.setCurrentDiscIndex(nextIndex);
+            }
+        }
+    }
+
+    /**
+     * Сменяет на предыдущий диск в многодисковой игре
+     */
+    public void changeToPreviousDisc() {
+        if (multiDiscGame != null && multiDiscGame.isMultiDisc()) {
+            int currentIndex = multiDiscGame.getCurrentDiscIndex();
+            int prevIndex = (currentIndex - 1 + multiDiscGame.getDiscCount()) % multiDiscGame.getDiscCount();
+            
+            MultiDiscGame.DiscInfo prevDisc = multiDiscGame.getDisc(prevIndex);
+            if (prevDisc != null) {
+                Log.e("ePSXe", "Changing to previous disc: " + prevDisc.getDiscName());
+                f153e.changedisc(prevDisc.getIsoPath(), prevDisc.getSlot());
+                multiDiscGame.setCurrentDiscIndex(prevIndex);
+            }
+        }
     }
 }
